@@ -133,85 +133,52 @@ def column_Filter(df,dias):
   return aux3
 
 
+def resource_ranking(df, lista_filtrada3, variavel_alvo):
+  tab = get_x2(df, lista_filtrada3[0], lista_filtrada3[1], lista_filtrada3[2], lista_filtrada3[3])
 
-def resource_ranking(df,lista_filtrada3,variavel_alvo) :
-  
-  # resource_ranking(df_la,lista_filtrada2,"temp_min")  
-  #Monta a tabela com os dados filtrados 
-  
-  tab=get_x2(df,lista_filtrada3[0],lista_filtrada3[1],lista_filtrada3[2],lista_filtrada3[3])
- 
-  # dff=tab[0].drop("Data",axis=1)
-  
-  # train_size = int(((len(tab[0]))-tab[1]) )
-  # dff=dff.iloc[tab[1]:train_size,:]
-
-  # array1 = dff.values
-
-  # df= df.drop("Data",axis=1)
-  # df=df.iloc[tab[1]:train_size,:]
-  # array2 = df[variavel_alvo]
-  
-  # Data Patricia
-  # selecao_treino = (tab[0]['Data'] >= '1993') & (tab[0]['Data'] <= '2011-12-31')
-   # Data Nova
-  selecao_treino = (tab[0]['Data'] >= '2014-01-01') & (tab[0]['Data'] <= '2018-12-31')
-  dff=tab[0][selecao_treino].drop("Data",axis=1)
-
-  train_size = int(((len(tab[0][selecao_treino]))-tab[1]) )
-  dff=dff.iloc[tab[1]:train_size,:]
+  selecao_treino = (tab[0]['Data'] >= '1993') & (tab[0]['Data'] <= '2011-12-31')
+  dff = tab[0][selecao_treino].drop("Data", axis=1)
+  train_size = int(((len(tab[0][selecao_treino])) - tab[1]))
+  dff = dff.iloc[tab[1]:train_size, :]
   array1 = dff.values
 
-  df= df[selecao_treino].drop("Data",axis=1)
-  df=df.iloc[tab[1]:train_size,:]
+  df = df[selecao_treino].drop("Data", axis=1)
+  df = df.iloc[tab[1]:train_size, :]
   array2 = df[variavel_alvo]
 
- 
-
-  X =array1[:,0:len(tab[0].columns)]
+  X = array1[:, 0:len(tab[0].columns)]
   Y = array2
-  # feature extraction
+
+  # Seleção univariada (fit.scores_)
   test = SelectKBest(score_func=f_regression, k=4)
   fit = test.fit(X, Y)
-  # summarize scores
-  set_printoptions(precision=3)
- 
-
-    
-  # print("Selecao_univariada",fit.scores_)
-  f=fit.scores_
-  f_ord = sorted(f,reverse=True)
-  # print("Selecao_univariada_ordenada",f_ord)
-
-  ll=[]
+  f = fit.scores_
+  f_ord = sorted(f, reverse=True)
+  leg_seq = []
   for y in range(len(f_ord)):
     for i in range(len(f)):
-      if (f_ord[y]==f[i]):
-        ll.append(i)
-        # print("f[i]",f[i])
-        # print("f_ord[y]",f_ord[y])
-  leg_seq=[]
-  for i in range(len(ll)):
-    leg_seq.append(dff.columns[ll[i]])    
+      if f_ord[y] == f[i]:
+        leg_seq.append(dff.columns[i])
 
-  # print("Colunas_selecionadas [0]- Selecao_univariada",leg_seq)
- 
-  model = ExtraTreesRegressor(n_estimators=10,random_state=42)
-  model.fit(X,Y)
-  g=model.feature_importances_
-  g_ord=sorted(model.feature_importances_,reverse=True)
-  # print("Importancia",g)
-  # print("Importancia_ordenada",g_ord)
-  jj=[]
+  # Importância do recurso (model.feature_importances_)
+  model = ExtraTreesRegressor(n_estimators=10, random_state=42)
+  model.fit(X, Y)
+  g = model.feature_importances_
+  g_ord = sorted(model.feature_importances_, reverse=True)
+  leg_seq2 = []
   for y in range(len(g_ord)):
     for i in range(len(g)):
-      if (g_ord[y]==g[i]):
-        jj.append(i)
-  leg_seq2=[]
-  for i in range(len(ll)):
-    leg_seq2.append(dff.columns[jj[i]])    
-  # print("Colunas_selecionadas [1]- Importância do recurso",leg_seq2)
-  return leg_seq,leg_seq2
+      if g_ord[y] == g[i]:
+        leg_seq2.append(dff.columns[i])
+
+  # Coeficiente de correlação de Pearson
+  corr = np.abs(np.corrcoef(X.T, Y))
+  p_ord = np.argsort(-corr[len(corr) - 1, :-1])
+  leg_seq3 = []
+  for i in p_ord:
+    leg_seq3.append(dff.columns[i])
+
+  return leg_seq, leg_seq2, leg_seq3
 
 def list_Format(melhores_recursos,q,dias):
   b=[]
